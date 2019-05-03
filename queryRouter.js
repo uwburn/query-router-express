@@ -1,7 +1,6 @@
 "use strict";
 
 const HttpError = require("http-error");
-const asyncWrapper = require("async-wrapper-express");
 
 const SCORES = {
   STRICT: 3,
@@ -31,28 +30,33 @@ function scoreMapping(mapping, req) {
 }
 
 module.exports = function queryRouter(mappings, options) {
-  return asyncWrapper(function middleware(req, res, next) {
-    let highestScore = SCORES.NO_MATCH;
-    let highestScoreHanlder;
-    for (let m of mappings) {
-      let score = scoreMapping(m. req);
-      if (score === SCORES.STRICT)
-        return m.hanlder(req, res, next);
-      if (score > highestScore)
-        highestScoreHanlder = m.hanlder;
-    }
+  return async function middleware(req, res, next) {
+    try {
+      let highestScore = SCORES.NO_MATCH;
+      let highestScoreHanlder;
+      for (let m of mappings) {
+        let score = scoreMapping(m, req);
+        if (score === SCORES.STRICT)
+          return await m.handler(req, res, next);
+        if (score > highestScore)
+          highestScoreHanlder = m.handler;
+      }
 
-    if (highestScoreHanlder)
-      return highestScoreHanlder(req, res, next);
+      if (highestScoreHanlder)
+        return await highestScoreHanlder(req, res, next);
 
-    if (options.notFound) {
-      if (typeof options.notFound === "function")
-        throw options.notFound();
-      else
-        throw options.notFound;
+      if (options.notFound) {
+        if (typeof options.notFound === "function")
+          throw options.notFound();
+        else
+          throw options.notFound;
+      }
+      else {
+        throw HttpError.notFound();
+      }
     }
-    else {
-      throw HttpError.notFound();
+    catch(err) {
+      next(err);
     }
-  });
+  };
 };

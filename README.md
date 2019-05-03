@@ -36,4 +36,5 @@ router.get('/', queryRouter([
 ```
 
 ### Notes
-The middleware also does async wrapping by using async-wrapper-express.
+The middleware requires ES6 async/await as it support async handlers
+and any error thrown by them will be passed to `next`.
