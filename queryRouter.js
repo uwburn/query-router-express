@@ -12,6 +12,9 @@ const SCORES = {
 function scoreMapping(mapping, req) {
   let strict = true;
 
+  if (!mapping.query || Object.keys(mapping.query).length === 0)
+    return mapping.default ? SCORES.DEFAULT : SCORES.NO_MATCH;
+
   for (let q in mapping.query) {
     let value = mapping.query[q];
     if (req.query[q] === value) {
@@ -33,17 +36,39 @@ module.exports = function queryRouter(mappings, options) {
   return async function middleware(req, res, next) {
     try {
       let highestScore = SCORES.NO_MATCH;
-      let highestScoreHanlder;
+      let highestScoreMapping;
       for (let m of mappings) {
         let score = scoreMapping(m, req);
-        if (score === SCORES.STRICT)
-          return await m.handler(req, res, next);
-        if (score > highestScore)
-          highestScoreHanlder = m.handler;
+        if (score === SCORES.STRICT) {
+          highestScoreMapping = m;
+          break;
+        }
+        if (score > highestScore) {
+          highestScoreMapping = m;
+        }
       }
 
-      if (highestScoreHanlder)
-        return await highestScoreHanlder(req, res, next);
+      if (highestScoreMapping) {
+        if (highestScoreMapping.middlewares) {
+          for (let m of highestScoreMapping.middlewares) {
+            try {
+              await new Promise((resolve, reject) => {
+                m(req, res, (err) => {
+                  if (err)
+                    return reject(err);
+                  
+                  resolve();
+                });
+              });
+            }
+            catch(err) {
+              return next(err);
+            }
+          }
+        }
+
+        return await highestScoreMapping.handler(req, res, next);
+      }
 
       if (options.notFound) {
         if (typeof options.notFound === "function")
