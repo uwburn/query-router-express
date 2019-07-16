@@ -32,7 +32,7 @@ function scoreMapping(mapping, req) {
   return strict ? SCORES.STRICT : SCORES.NON_STRICT;
 }
 
-module.exports = function queryRouter(mappings, options) {
+module.exports = function queryRouter(mappings, options = {}) {
   return async function middleware(req, res, next) {
     try {
       let highestScore = SCORES.NO_MATCH;
