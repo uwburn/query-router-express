@@ -13,37 +13,50 @@ function scoreMapping(mapping, req) {
   let strict = true;
 
   if (!mapping.query || Object.keys(mapping.query).length === 0)
-    return mapping.default ? SCORES.DEFAULT : SCORES.NO_MATCH;
+    return {
+      match: mapping.default ? SCORES.DEFAULT : SCORES.NO_MATCH,
+      params: 0
+    };
 
+  let params = 0;
   for (let q in mapping.query) {
     let value = mapping.query[q];
     if (req.query[q] === value) {
+      ++params;
       continue;
     }
     else if (req.query[q]) {
       strict = false;
+      ++params;
       continue;
     }
     else {
-      return mapping.default ? SCORES.DEFAULT : SCORES.NO_MATCH;
+      return {
+        match: mapping.default ? SCORES.DEFAULT : SCORES.NO_MATCH,
+        params: 0
+      };
     }
   }
 
-  return strict ? SCORES.STRICT : SCORES.NON_STRICT;
+  return {
+    match: (strict && Object.keys(mapping.query).length === Object.keys(req.query).length) ? SCORES.STRICT : SCORES.NON_STRICT,
+    params: params
+  };
 }
 
 module.exports = function queryRouter(mappings, options = {}) {
   return async function middleware(req, res, next) {
     try {
-      let highestScore = SCORES.NO_MATCH;
+      let highestScore = {
+        match: SCORES.NO_MATCH,
+        params: 0
+      };
+
       let highestScoreMapping;
       for (let m of mappings) {
         let score = scoreMapping(m, req);
-        if (score === SCORES.STRICT) {
-          highestScoreMapping = m;
-          break;
-        }
-        if (score > highestScore) {
+        if (score.match > highestScore.match || (score.match === highestScore.match && score.params > highestScore.params)) {
+          highestScore = score;
           highestScoreMapping = m;
         }
       }
@@ -56,12 +69,12 @@ module.exports = function queryRouter(mappings, options = {}) {
                 m(req, res, (err) => {
                   if (err)
                     return reject(err);
-                  
+
                   resolve();
                 });
               });
             }
-            catch(err) {
+            catch (err) {
               return next(err);
             }
           }
@@ -80,7 +93,7 @@ module.exports = function queryRouter(mappings, options = {}) {
         throw HttpError.notFound();
       }
     }
-    catch(err) {
+    catch (err) {
       next(err);
     }
   };
