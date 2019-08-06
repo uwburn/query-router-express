@@ -1,6 +1,6 @@
 {
   "name": "query-router-express",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "queryRouter.js",
   "description": "Express middleware to route based on query string",
   "author": { 
