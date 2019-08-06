@@ -1,6 +1,6 @@
 "use strict";
 
-const HttpError = require("http-error");
+const HttpError = require("http-error-prototype");
 
 const SCORES = {
   STRICT: 3,
