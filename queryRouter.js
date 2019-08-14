@@ -3,7 +3,8 @@
 const HttpError = require("http-error-prototype");
 
 const SCORES = {
-  STRICT: 3,
+  FULL_STRICT: 4,
+  PARTIAL_STRICT: 3,
   NON_STRICT: 2,
   DEFAULT: 1,
   NO_MATCH: 0
@@ -38,8 +39,16 @@ function scoreMapping(mapping, req) {
     }
   }
 
+  let match;
+  if (strict) {
+    match = Object.keys(mapping.query).length === Object.keys(req.query).length ? SCORES.FULL_STRICT : SCORES.PARTIAL_STRICT;
+  }
+  else {
+    match = SCORES.NON_STRICT;
+  }
+
   return {
-    match: (strict && Object.keys(mapping.query).length === Object.keys(req.query).length) ? SCORES.STRICT : SCORES.NON_STRICT,
+    match: match,
     params: params
   };
 }
@@ -98,3 +107,4 @@ module.exports = function queryRouter(mappings, options = {}) {
     }
   };
 };
+
